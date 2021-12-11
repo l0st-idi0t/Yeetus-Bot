@@ -7,6 +7,7 @@ import youtube_dl
 from keep_alive import *
 import nacl
 import random as rand
+import requests
 
 
 keep_alive()
@@ -26,15 +27,15 @@ ytdl = youtube_dl.YoutubeDL(ytdl_options)
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
-#join
-@client.command()
-async def join(ctx):
-  if not ctx.message.author.voice:
-    await ctx.send(f'**{ctx.message.author}** is not connected to a voice channel')
-    return
-  else:
-    channel = ctx.message.author.voice.channel
-    await channel.connect()
+# #join
+# @client.command()
+# async def join(ctx):
+#   if not ctx.message.author.voice:
+#     await ctx.send(f'**{ctx.message.author}** is not connected to a voice channel')
+#     return
+#   else:
+#     channel = ctx.message.author.voice.channel
+#     await channel.connect()
 
 #loop
 @client.command()
@@ -51,35 +52,63 @@ def play_next(ctx):
   if len(playlist) > 0:
     if loop:
       playlist.append(playlist[0])
-    del playlist[0]
     voice = get(client.voice_clients, guild = ctx.guild)
     voice.play(FFmpegPCMAudio(playlist[0][1], **FFMPEG_OPTIONS), after = lambda e: play_next(ctx))
+    del playlist[0]
 
 #play
 @client.command()
 async def play(ctx, *, search):
   global loop
 
-  voice = get(client.voice_clients, guild = ctx.guild)
-
-  if not voice.is_playing():
-    info = ytdl.extract_info(search, download = False)
-    URL = info["entries"][0]["formats"][0]['url']
-    playlist.append((info["entries"][0]["title"], URL))
-    if loop:
-      playlist.append(playlist[0])
-    voice.play(FFmpegPCMAudio(playlist[0][1], **FFMPEG_OPTIONS), after = lambda e: play_next(ctx))
-    voice.is_playing()
-
-    await ctx.send(f'Playing **{playlist[0][0]}**')
-    del playlist[0]
-  else:
-    info = ytdl.extract_info(search, download = False)
-    URL = info["entries"][0]["formats"][0]['url']
-    playlist.append((info["entries"][0]["title"], URL))
-    await ctx.send(f'**{info["entries"][0]["title"]}** added to queue')
+  if not ctx.message.author.voice:
+    await ctx.send(f'**{ctx.message.author}** is not connected to a voice channel')
     return
+  else:
+    voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    channel = ctx.message.author.voice.channel
+
+    if voice_client == None:
+      await channel.connect()
+    else:
+      await voice_client.move_to(channel)
     
+    voice = get(client.voice_clients, guild = ctx.guild)
+
+    if not voice.is_playing() and not voice.is_paused():
+      info = ytdl.extract_info(search, download = False)
+      try:
+        response = requests.get(search)
+        URL = info["formats"][0]['url']
+        playlist.append((info["title"], URL))
+      except Exception as e:
+        URL = info["entries"][0]["formats"][0]['url']
+        playlist.append((info["entries"][0]["title"], URL))
+      if loop:
+        playlist.append(playlist[0])
+      voice.play(FFmpegPCMAudio(playlist[0][1], **FFMPEG_OPTIONS), after = lambda e: play_next(ctx))
+      voice.is_playing()
+
+      await ctx.send(f'Playing **{playlist[0][0]}**')
+      del playlist[0]
+    else:
+      info = ytdl.extract_info(search, download = False)
+      try:
+        response = requests.get(search)
+        URL = info["formats"][0]['url']
+        playlist.append((info["title"], URL))
+        await ctx.send(f'**{info["title"]}** added to queue')
+      except Exception as e:
+        URL = info["entries"][0]["formats"][0]['url']
+        playlist.append((info["entries"][0]["title"], URL))
+        await ctx.send(f'**{info["entries"][0]["title"]}** added to queue')
+      return
+
+#remove from queue
+# @client.command()
+# async def remove(ctx):
+   
+
 #pause
 @client.command()
 async def pause(ctx):
@@ -106,7 +135,6 @@ async def resume(ctx):
 @client.command()
 async def cmds(ctx):
   embed = discord.Embed(title = '**Commands**', descriptions = 'Here are the commands', color = 0xA828D2)
-  embed.add_field(name = '.join', value = 'Invites Yeetus Bot to join your voice channel', inline = False)
   embed.add_field(name = '.play <name or link>', value = 'Searches for matching song to play or plays from link', inline = False)
   embed.add_field(name = '.pause', value = 'Pauses music if currently playing', inline = False)
   embed.add_field(name = '.resume', value = 'Resumes music', inline = False)
@@ -142,9 +170,12 @@ async def queue(ctx):
 #leave
 @client.command()
 async def leave(ctx):
-  voice = get(client.voice_clients, guild = ctx.guild)
-  await voice.disconnect()
-  await ctx.send("Yeetus bot has been **yeeted** out of the voice chat")
+  if ctx.message.author.voice:
+    voice = get(client.voice_clients, guild = ctx.guild)
+    await voice.disconnect()
+    await ctx.send("Yeetus bot has been **yeeted** out of the voice chat")
+  else:
+    await ctx.send("You have to be connected to the voice channel")
 
 #on connect
 @client.event
