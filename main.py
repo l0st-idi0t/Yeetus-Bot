@@ -49,17 +49,18 @@ async def looped(ctx):
 #play next
 def play_next(ctx):
   global loop
+  voice = get(client.voice_clients, guild = ctx.guild)
 
-  if playlist and loop:
-    playlist.append(playlist[0])
-    voice = get(client.voice_clients, guild = ctx.guild)
-    voice.play(FFmpegPCMAudio(playlist[0][1], **FFMPEG_OPTIONS), after = lambda e: play_next(ctx))
+  if playlist:
+    if loop:
+      playlist.append(playlist[0])
     del playlist[0]
+    voice.play(FFmpegPCMAudio(playlist[0][1], **FFMPEG_OPTIONS), after = lambda e: play_next(ctx))
+    
 
 #play
 @client.command()
 async def play(ctx, *, search):
-  global loop
 
   if not ctx.message.author.voice:
     await ctx.send(f'**{ctx.message.author}** is not connected to a voice channel')
@@ -84,13 +85,11 @@ async def play(ctx, *, search):
       except Exception as e:
         URL = info["entries"][0]["formats"][0]['url']
         playlist.append((info["entries"][0]["title"], URL))
-      if loop:
-        playlist.append(playlist[0])
+
       voice.play(FFmpegPCMAudio(playlist[0][1], **FFMPEG_OPTIONS), after = lambda e: play_next(ctx))
       voice.is_playing()
 
       await ctx.send(f'Playing **{playlist[0][0]}**')
-      del playlist[0]
     else:
       info = ytdl.extract_info(search, download = False)
       try:
@@ -107,9 +106,9 @@ async def play(ctx, *, search):
 #remove from queue
 @client.command()
 async def remove(ctx, *, num):
-  if playlist and num.isdigit() and int(num) > -1 and int(num) <= len(playlist):
-    await ctx.send(f'Removed **{playlist[int(num) - 1][0]}** from the queue')
-    del playlist[int(num) - 1]
+  if playlist and num.isdigit() and int(num) > 0 and int(num) < len(playlist):
+    await ctx.send(f'Removed **{playlist[int(num)][0]}** from the queue')
+    del playlist[int(num)]
   else:
     await ctx.send('Not in range of queue')
 
@@ -147,6 +146,7 @@ async def cmds(ctx):
   embed.add_field(name = '.stop', value = 'Stops playing current song and clears queue', inline = False)
   embed.add_field(name = '.remove <num>', value = 'Removes song at <num>\'s position in the queue', inline = False)
   embed.add_field(name = '.leave', value = '*Yeets* Yeetus Bot out of your voice channel', inline = False)
+  embed.set_footer(text = f'Requested by {ctx.author.name}', icon_url = ctx.author.avatar_url)
   await ctx.send(embed = embed)
 
 #stop
@@ -164,11 +164,14 @@ async def stop(ctx):
 async def queue(ctx):
   embed = discord.Embed(title = '**Queue**', description = "", color = 0x21c24c)
   if playlist:
-    for i, song in enumerate(playlist):
-      embed.add_field(name = f'{i + 1}. {playlist[i][0]}', value = rand.choice(randoComplimentsList), inline = False)
+    embed.add_field(name = f'Current: {playlist[0][0]}', value = rand.choice(randoComplimentsList), inline = False)
+    for i in range(1, len(playlist)):
+      embed.add_field(name = f'{i}. {playlist[i][0]}', value = rand.choice(randoComplimentsList), inline = False)
   else:
     embed.add_field(name = "No songs in queue", value = "Maybe you should add some", inline = True)
   
+  embed.set_footer(text = f'Requested by {ctx.author.name}', icon_url = ctx.author.avatar_url)
+
   await ctx.send(embed = embed)
 
 #leave
