@@ -16,6 +16,7 @@ keep_alive()
 token = os.environ['TOKEN']
 client = commands.Bot(command_prefix = '.')
 
+
 playlist = []
 randoComplimentsList = ['Great choice!', 'Amazing song', 'Beautiful', 'Nice one!', 'This one sounds fabulous']
 loop = False
@@ -49,9 +50,8 @@ async def looped(ctx):
 def play_next(ctx):
   global loop
 
-  if len(playlist) > 0:
-    if loop:
-      playlist.append(playlist[0])
+  if playlist and loop:
+    playlist.append(playlist[0])
     voice = get(client.voice_clients, guild = ctx.guild)
     voice.play(FFmpegPCMAudio(playlist[0][1], **FFMPEG_OPTIONS), after = lambda e: play_next(ctx))
     del playlist[0]
@@ -105,9 +105,13 @@ async def play(ctx, *, search):
       return
 
 #remove from queue
-# @client.command()
-# async def remove(ctx):
-   
+@client.command()
+async def remove(ctx, *, num):
+  if playlist and num.isdigit() and int(num) > -1 and int(num) <= len(playlist):
+    await ctx.send(f'Removed **{playlist[int(num) - 1][0]}** from the queue')
+    del playlist[int(num) - 1]
+  else:
+    await ctx.send('Not in range of queue')
 
 #pause
 @client.command()
@@ -140,26 +144,26 @@ async def cmds(ctx):
   embed.add_field(name = '.resume', value = 'Resumes music', inline = False)
   embed.add_field(name = '.looped', value = 'Enables/disables looped mode (will loop through queue if enabled)', inline = False)
   embed.add_field(name = '.queue', value = 'Shows songs in queue', inline = False)
-  embed.add_field(name = '.skip', value = 'Skips current song', inline = False)
-  embed.add_field(name = '.leave', value = '**Yeets** Yeetus Bot out of your voice channel', inline = False)
+  embed.add_field(name = '.stop', value = 'Stops playing current song and clears queue', inline = False)
+  embed.add_field(name = '.remove <num>', value = 'Removes song at <num>\'s position in the queue', inline = False)
+  embed.add_field(name = '.leave', value = '*Yeets* Yeetus Bot out of your voice channel', inline = False)
   await ctx.send(embed = embed)
 
 #stop
 @client.command()
-async def skip(ctx):
+async def stop(ctx):
   voice = get(client.voice_clients, guild = ctx.guild)
 
   if voice.is_playing():
     voice.stop()
-    for i, song in enumerate(playlist):
-      del playlist[i]
-    await ctx.send("Skipped")
+    playlist.clear()
+    await ctx.send("Stopped")
 
 #queue
 @client.command()
 async def queue(ctx):
   embed = discord.Embed(title = '**Queue**', description = "", color = 0x21c24c)
-  if len(playlist) > 0:
+  if playlist:
     for i, song in enumerate(playlist):
       embed.add_field(name = f'{i + 1}. {playlist[i][0]}', value = rand.choice(randoComplimentsList), inline = False)
   else:
