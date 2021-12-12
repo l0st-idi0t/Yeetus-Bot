@@ -1,3 +1,3 @@
 # Yeetus-Bot
-Log messages  
+Log message edits and deletions  
 Play music
