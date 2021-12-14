@@ -5,32 +5,11 @@ from discord.utils import get
 from discord import FFmpegPCMAudio
 import youtube_dl
 from keep_alive import *
-import nacl
 import random as rand
 import requests
 
-
-keep_alive()
-
-#help
-class MyHelpCommand(commands.MinimalHelpCommand):
-  async def send_pages(self):
-    ctx = self.get_destination()
-    embed = discord.Embed(title = '**Commands**', descriptions = 'Here are the commands', color = 0xA828D2)
-    embed.add_field(name = '.play <name or link>', value = 'Searches for matching song to play or plays from link', inline = False)
-    embed.add_field(name = '.pause', value = 'Pauses music if currently playing', inline = False)
-    embed.add_field(name = '.resume', value = 'Resumes music', inline = False)
-    embed.add_field(name = '.looped', value = 'Enables/disables looped mode (will loop through queue if enabled)', inline = False)
-    embed.add_field(name = '.queue', value = 'Shows songs in queue', inline = False)
-    embed.add_field(name = '.stop', value = 'Stops playing current song and clears queue', inline = False)
-    embed.add_field(name = '.remove <num>', value = 'Removes song at <num>\'s position in the queue', inline = False)
-    embed.add_field(name = '.leave', value = '*Yeets* Yeetus Bot out of your voice channel', inline = False)
-    #embed.set_footer(text = f'Requested by {ctx.author.name}', icon_url = ctx.author.avatar_url)
-    await ctx.send(embed = embed)
-
-token = os.environ['TOKEN']
-client = commands.Bot(command_prefix = '.', help_command = MyHelpCommand())
-
+token = os.environ["TOKEN"]
+client = commands.Bot(command_prefix = '.')
 
 playlist = []
 randoComplimentsList = ['Great choice!', 'Amazing song', 'Beautiful', 'Nice one!', 'This one sounds fabulous']
@@ -52,6 +31,23 @@ FFMPEG_OPTIONS = {
 #   else:
 #     channel = ctx.message.author.voice.channel
 #     await channel.connect()
+
+#help
+client.remove_command('help')
+
+@client.command()
+async def help(ctx):
+    embed = discord.Embed(title = '**Commands**', descriptions = 'Here are the commands', color = 0xA828D2)
+    embed.add_field(name = '.play <name or link>', value = 'Searches for matching song to play or plays from link', inline = False)
+    embed.add_field(name = '.pause', value = 'Pauses music if currently playing', inline = False)
+    embed.add_field(name = '.resume', value = 'Resumes music', inline = False)
+    embed.add_field(name = '.looped', value = 'Enables/disables looped mode (will loop through queue if enabled)', inline = False)
+    embed.add_field(name = '.queue', value = 'Shows songs in queue', inline = False)
+    embed.add_field(name = '.stop', value = 'Stops playing current song and clears queue', inline = False)
+    embed.add_field(name = '.remove <num>', value = 'Removes song at <num>\'s position in the queue', inline = False)
+    embed.add_field(name = '.leave', value = '*Yeets* Yeetus Bot out of your voice channel', inline = False)
+    embed.set_footer(text = f'Requested by {ctx.author.name}', icon_url = ctx.author.avatar_url)
+    await ctx.send(embed = embed)
 
 #loop
 @client.command()
