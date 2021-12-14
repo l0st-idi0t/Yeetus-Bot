@@ -8,7 +8,11 @@ from keep_alive import *
 import random as rand
 import requests
 
-token = os.environ["TOKEN"]
+
+keep_alive()
+
+
+token = os.environ['TOKEN']
 client = commands.Bot(command_prefix = '.')
 
 playlist = []
